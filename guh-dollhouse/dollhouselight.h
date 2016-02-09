@@ -26,6 +26,9 @@ public:
     QColor color() const;
     void setColor(const QColor &color);
 
+    int brightness() const;
+    void setBrightness(const int &brightness);
+
     bool power() const;
     void setPower(const bool &power);
 
@@ -36,6 +39,7 @@ private:
     int m_lightId;
 
     QColor m_color;
+    int m_brightness;
     bool m_power;
 
 };

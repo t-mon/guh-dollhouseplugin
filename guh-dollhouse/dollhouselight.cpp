@@ -1,6 +1,10 @@
 #include "dollhouselight.h"
 
-DollhouseLight::DollhouseLight(QObject *parent) : QObject(parent)
+DollhouseLight::DollhouseLight(QObject *parent) :
+    QObject(parent),
+    m_color(QColor("#fff30a")),
+    m_brightness(100),
+    m_power(false)
 {
 
 }
@@ -53,6 +57,16 @@ QColor DollhouseLight::color() const
 void DollhouseLight::setColor(const QColor &color)
 {
     m_color = color;
+}
+
+int DollhouseLight::brightness() const
+{
+    return m_brightness;
+}
+
+void DollhouseLight::setBrightness(const int &brightness)
+{
+    m_brightness = brightness;
 }
 
 bool DollhouseLight::power() const

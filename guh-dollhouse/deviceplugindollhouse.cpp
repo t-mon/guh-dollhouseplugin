@@ -80,6 +80,8 @@ void DevicePluginDollHouse::deviceRemoved(Device *device)
         DollhouseLight *light = m_lights.take(device);
         light->deleteLater();
     }
+    m_houseAddress.clear();
+    m_houseReachable = false;
 }
 
 void DevicePluginDollHouse::guhTimer()
@@ -104,7 +106,6 @@ void DevicePluginDollHouse::guhTimer()
 DeviceManager::DeviceError DevicePluginDollHouse::executeAction(Device *device, const Action &action)
 {
     if (device->deviceClassId() == lightDeviceClassId) {
-
         if (!device->stateValue(reachableStateTypeId).toBool())
             return DeviceManager::DeviceErrorHardwareNotAvailable;
 
@@ -121,12 +122,9 @@ DeviceManager::DeviceError DevicePluginDollHouse::executeAction(Device *device, 
         url.setQuery(query);
 
         if (action.actionTypeId() == colorActionTypeId) {
-            QColor color = action.param("color").value().value<QColor>().toRgb();
-
-            QByteArray message = "color=";
-            message.append(QByteArray::number(color.red(), 16));
-            message.append(QByteArray::number(color.green(), 16));
-            message.append(QByteArray::number(color.blue(), 16));
+            QColor color = action.param("color").value().value<QColor>().toHsv();
+            QColor newColor = QColor::fromHsv(color.hue(), color.saturation(), 100 * light->brightness() / 255.0);
+            QByteArray message = "color=" + newColor.toRgb().name().remove("#").toUtf8();
 
             qCDebug(dcDollhouse) << "Sending" << url.toString() << message;
 
@@ -138,14 +136,30 @@ DeviceManager::DeviceError DevicePluginDollHouse::executeAction(Device *device, 
 
         } else if (action.actionTypeId() == powerActionTypeId) {
 
-            QByteArray message = "color=";
+            QByteArray message;
             if (action.param("power").value().toBool()) {
-                message.append(QByteArray::number(light->color().red(), 16).fill('0', 2));
-                message.append(QByteArray::number(light->color().green(), 16).fill('0', 2));
-                message.append(QByteArray::number(light->color().blue(), 16).fill('0', 2));
+                QColor color = light->color().toHsv();
+                QColor newColor = QColor::fromHsv(color.hue(), color.saturation(), 100 * light->brightness() / 255.0);
+                message = "color=" + newColor.toRgb().name().remove("#").toUtf8();
             } else {
-                message.append("000000");
+                message.append("color=000000");
             }
+
+            qCDebug(dcDollhouse) << "Sending" << url.toString() << message;
+
+            CoapReply *reply = m_coap->post(CoapRequest(url), message);
+            m_asyncActions.insert(reply, action);
+            m_asyncActionLights.insert(action.id(), light);
+
+            return DeviceManager::DeviceErrorAsync;
+        } else if (action.actionTypeId() == brightnessActionTypeId) {
+
+            int brightness = action.param("brightness").value().toInt();
+
+            QColor color = light->color().toHsv();
+            QColor newColor = QColor::fromHsv(color.hue(), color.saturation(), 100 * brightness / 255.0);
+
+            QByteArray message = "color=" + newColor.toRgb().name().remove("#").toUtf8();
 
             qCDebug(dcDollhouse) << "Sending" << url.toString() << message;
 
@@ -314,9 +328,23 @@ void DevicePluginDollHouse::coapReplyFinished(CoapReply *reply)
             light->setPower(power);
             m_lights.key(light)->setStateValue(powerStateTypeId, power);
         } else if (action.actionTypeId() == colorActionTypeId) {
+            if (!light->power()) {
+                light->setPower(true);
+                m_lights.key(light)->setStateValue(powerStateTypeId, true);
+            }
+
             QColor color = action.param("color").value().value<QColor>();
             light->setColor(color);
             m_lights.key(light)->setStateValue(colorStateTypeId, color);
+        } else if (action.actionTypeId() == brightnessActionTypeId) {
+            if (!light->power()) {
+                light->setPower(true);
+                m_lights.key(light)->setStateValue(powerStateTypeId, true);
+            }
+
+            int brightness = action.param("brightness").value().toInt();
+            light->setBrightness(brightness);
+            m_lights.key(light)->setStateValue(brightnessStateTypeId, brightness);
         }
     }
 

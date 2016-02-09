@@ -69,7 +69,17 @@
                             "idName": "color",
                             "name": "color",
                             "type": "QColor",
-                            "defaultValue": "#000000",
+                            "defaultValue": "#fff30a",
+                            "writable": true
+                        },
+                        {
+                            "id": "e78c9136-c10a-45c9-b6bc-2d937f09cdec",
+                            "idName": "brightness",
+                            "name": "brightness",
+                            "type": "int",
+                            "minValue": 0,
+                            "maxValue": 100,
+                            "defaultValue": 100,
                             "writable": true
                         },
                         {
