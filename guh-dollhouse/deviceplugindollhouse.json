@@ -27,7 +27,7 @@
                             "name": "RPL address",
                             "type": "QString",
                             "inputType": "TextLine",
-                            "defaultValue": "2001:db8:c001:f00d:221:2eff:ff00:33de"
+                            "defaultValue": "fdaa:e9b8:d03a::ff:fe00:1"
                         }
                     ]
                 },

@@ -26,7 +26,8 @@
 DevicePluginDollHouse::DevicePluginDollHouse() :
     m_houseReachable(false)
 {
-
+    m_coap = new Coap(this);
+    connect(m_coap, SIGNAL(replyFinished(CoapReply*)), this, SLOT(coapReplyFinished(CoapReply*)));
 }
 
 DeviceManager::HardwareResources DevicePluginDollHouse::requiredHardware() const
@@ -46,9 +47,6 @@ DeviceManager::DeviceSetupStatus DevicePluginDollHouse::setupDevice(Device *devi
                 return DeviceManager::DeviceSetupStatusFailure;
             }
         }
-
-        m_coap = new Coap(this);
-        connect(m_coap, SIGNAL(replyFinished(CoapReply*)), this, SLOT(coapReplyFinished(CoapReply*)));
 
         int lookupId = QHostInfo::lookupHost(device->paramValue("RPL address").toString(), this, SLOT(hostLockupFinished(QHostInfo)));
         m_asyncSetup.insert(lookupId, device);
@@ -80,6 +78,7 @@ void DevicePluginDollHouse::deviceRemoved(Device *device)
         DollhouseLight *light = m_lights.take(device);
         light->deleteLater();
     }
+
     m_houseAddress.clear();
     m_houseReachable = false;
 }
@@ -87,7 +86,7 @@ void DevicePluginDollHouse::deviceRemoved(Device *device)
 void DevicePluginDollHouse::guhTimer()
 {
     foreach (Device *device, myDevices()) {
-        if (device->deviceClassId() == connectionDeviceClassId) {
+        if (device->deviceClassId() == connectionDeviceClassId && !m_houseAddress.isNull()) {
             scanNodes(device);
         }
     }
@@ -206,11 +205,26 @@ void DevicePluginDollHouse::scanNodes(Device *device)
 
 void DevicePluginDollHouse::parseNode(Device *device, const QByteArray &data)
 {
-    int index = data.indexOf("Routes<pre>") + 11;
-    int delta = data.indexOf("/128",index);
 
-    QHostAddress houseAddress = QHostAddress(QString(data.mid(index, delta - index)));
+    QList<QByteArray> lines = data.split('\n');
+    QList<QHostAddress> addresses;
+    foreach (const QByteArray &line, lines) {
+        if (line.isEmpty())
+            continue;
 
+        // remove the '/128' from the address
+        QHostAddress address(QString(data.left(line.length() - 4)));
+
+        if (!address.isNull())
+            addresses.append(address);
+
+    }
+
+    //    int index = data.indexOf("Routes<pre>") + 11;
+    //    int delta = data.indexOf("/128",index);
+    //    QHostAddress houseAddress = QHostAddress(QString(data.mid(index, delta - index)));
+
+    QHostAddress houseAddress = addresses.first();
     if (houseAddress != m_houseAddress && !houseAddress.isNull()) {
         m_houseAddress = houseAddress;
         qCDebug(dcDollhouse) << "Found house at" << m_houseAddress.toString();
@@ -220,7 +234,7 @@ void DevicePluginDollHouse::parseNode(Device *device, const QByteArray &data)
 
         QList<DeviceDescriptor> deviceDescriptorList;
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 5; i++) {
             DeviceDescriptor descriptor(lightDeviceClassId, "Light", QString::number(i));
             ParamList params;
             params.append(Param("address", m_houseAddress.toString()));
@@ -229,19 +243,19 @@ void DevicePluginDollHouse::parseNode(Device *device, const QByteArray &data)
 
             switch (i) {
             case 0:
-                params.append(Param("name", "Kitchen"));
+                params.append(Param("name", "Living room"));
                 break;
             case 1:
-                params.append(Param("name", "Dining room"));
+                params.append(Param("name", "Kitchen"));
                 break;
             case 2:
-                params.append(Param("name", "Living room"));
+                params.append(Param("name", "Under the bed"));
                 break;
             case 3:
                 params.append(Param("name", "Bedroom"));
                 break;
             case 4:
-                params.append(Param("name", "Bed light"));
+                params.append(Param("name", "Dining room"));
                 break;
             default:
                 params.append(Param("name", QString("Light %1").arg(QString::number(i))));
