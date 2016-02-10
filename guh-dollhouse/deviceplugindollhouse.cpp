@@ -281,6 +281,7 @@ void DevicePluginDollHouse::coapReplyFinished(CoapReply *reply)
         m_asyncPings.removeAll(reply);
 
         if (reply->error() != CoapReply::NoError || reply->statusCode() != CoapPdu::Empty) {
+
             if (m_houseReachable) {
                 qCWarning(dcDollhouse) << "Could not ping Dollhouse:" << reply->errorString();
                 m_houseReachable = false;
@@ -290,7 +291,9 @@ void DevicePluginDollHouse::coapReplyFinished(CoapReply *reply)
                     }
                 }
             }
+
         } else {
+
             if (!m_houseReachable) {
                 qCDebug(dcDollhouse) << "Dollhouse reachable";
                 m_houseReachable = true;
@@ -327,6 +330,7 @@ void DevicePluginDollHouse::coapReplyFinished(CoapReply *reply)
             bool power = action.param("power").value().toBool();
             light->setPower(power);
             m_lights.key(light)->setStateValue(powerStateTypeId, power);
+
         } else if (action.actionTypeId() == colorActionTypeId) {
             if (!light->power()) {
                 light->setPower(true);
@@ -336,6 +340,7 @@ void DevicePluginDollHouse::coapReplyFinished(CoapReply *reply)
             QColor color = action.param("color").value().value<QColor>();
             light->setColor(color);
             m_lights.key(light)->setStateValue(colorStateTypeId, color);
+
         } else if (action.actionTypeId() == brightnessActionTypeId) {
             if (!light->power()) {
                 light->setPower(true);

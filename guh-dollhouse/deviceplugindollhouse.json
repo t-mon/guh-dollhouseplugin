@@ -77,6 +77,7 @@
                             "idName": "brightness",
                             "name": "brightness",
                             "type": "int",
+                            "unit": "Percentage",
                             "minValue": 0,
                             "maxValue": 100,
                             "defaultValue": 100,
