@@ -224,6 +224,9 @@ void DevicePluginDollHouse::parseNode(Device *device, const QByteArray &data)
     //    int delta = data.indexOf("/128",index);
     //    QHostAddress houseAddress = QHostAddress(QString(data.mid(index, delta - index)));
 
+    if (addresses.isEmpty())
+        return;
+
     QHostAddress houseAddress = addresses.first();
     if (houseAddress != m_houseAddress && !houseAddress.isNull()) {
         m_houseAddress = houseAddress;
