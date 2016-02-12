@@ -86,7 +86,7 @@ void DevicePluginDollHouse::deviceRemoved(Device *device)
 void DevicePluginDollHouse::guhTimer()
 {
     foreach (Device *device, myDevices()) {
-        if (device->deviceClassId() == connectionDeviceClassId && !m_houseAddress.isNull()) {
+        if (device->deviceClassId() == connectionDeviceClassId && m_houseAddress.isNull()) {
             scanNodes(device);
         }
     }
